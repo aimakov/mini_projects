@@ -22,7 +22,7 @@ class Particle {
         this.y = Math.floor(Math.random() * this.effect.height);
         this.speedX;
         this.speedY;
-        this.speedModifier = Math.floor(Math.random() * 5 + 1);
+        this.speedModifier = Math.floor(Math.random() * 5 + 2);
         this.history = [{ x: this.x, y: this.y }];
         this.maxLength = Math.floor(Math.random() * 200 + 10);
         this.angle = 0;
@@ -90,18 +90,22 @@ class Effect {
     curve: number;
     zoom: number;
     debug: boolean;
+    canvas: any;
+    context: any;
 
-    constructor(width: number, height: number) {
-        this.width = width;
-        this.height = height;
+    constructor(canvas: any, context: any) {
+        this.canvas = canvas;
+        this.context = context;
+        this.width = this.canvas.width;
+        this.height = this.canvas.height;
         this.particles = [];
-        this.numberOfParticles = 2000;
+        this.numberOfParticles = 1000;
         this.cellSize = 30;
         this.rows;
         this.cols;
         this.flowField = [];
-        this.curve = 5;
-        this.zoom = 0.11;
+        this.curve = 0.2;
+        this.zoom = 0.1;
         this.debug = false;
         this.init();
 
@@ -110,6 +114,21 @@ class Effect {
                 this.debug = !this.debug;
             }
         });
+
+        window.addEventListener("resize", (e: any) => {
+            this.resize(e.target.innerWidth, e.target.innerHeight);
+        });
+    }
+
+    resize(width: number, height: number) {
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.width = this.canvas.width;
+        this.height = this.canvas.height;
+
+        this.context.strokeStyle = "white";
+
+        this.init();
     }
 
     init() {
@@ -124,6 +143,7 @@ class Effect {
             }
         }
 
+        this.particles = [];
         for (let i = 0; i < this.numberOfParticles; i++) {
             this.particles.push(new Particle(this));
         }
@@ -148,21 +168,19 @@ class Effect {
     drawGridAngles(context: any) {
         context.save();
         context.strokeStyle = "red";
-
+        context.lineWidth = 2;
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
                 context.beginPath();
                 context.moveTo(c * this.cellSize + this.cellSize / 2, this.cellSize * r + this.cellSize / 2);
                 context.lineTo(
-                    c * this.cellSize + this.cellSize / 2 + (Math.cos(this.flowField[r * this.cols + c]) * this.cellSize) / 4,
-                    this.cellSize * r + this.cellSize / 2 + (Math.sin(this.flowField[r * this.cols + c]) * this.cellSize) / 4
+                    c * this.cellSize + this.cellSize / 2 + (Math.cos(this.flowField[r * this.cols + c]) * this.cellSize) / 3,
+                    this.cellSize * r + this.cellSize / 2 + (Math.sin(this.flowField[r * this.cols + c]) * this.cellSize) / 3
                 );
                 context.stroke();
-
                 // context.fillText(Math.round(this.flowField[r * this.cols + c]), c * this.cellSize + this.cellSize / 2, this.cellSize * r + this.cellSize / 2);
             }
         }
-
         context.restore();
     }
 
@@ -184,20 +202,15 @@ const Page = (props: Props) => {
             canvasElement.width = window.innerWidth;
             canvasElement.height = window.innerHeight;
 
-            const canvasCtx = canvasElement.getContext("2d");
+            let canvasCtx = canvasElement.getContext("2d");
 
             canvasCtx.strokeStyle = "white";
             canvasCtx.fillStyle = "white";
             canvasCtx.lineCap = "round";
 
-            // canvasCtx.beginPath();
-            // canvasCtx.moveTo(100, 100);
-            // canvasCtx.lineTo(200, 200);
-            // canvasCtx.stroke();
+            let effect = new Effect(canvasElement, canvasCtx);
 
-            const effect = new Effect(canvasElement.width, canvasElement.height);
             effect.render(canvasCtx);
-            console.log(effect);
 
             const animate = () => {
                 canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
