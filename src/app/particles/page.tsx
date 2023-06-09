@@ -89,19 +89,27 @@ class Effect {
     flowField: number[];
     curve: number;
     zoom: number;
+    debug: boolean;
 
     constructor(width: number, height: number) {
         this.width = width;
         this.height = height;
         this.particles = [];
         this.numberOfParticles = 2000;
-        this.cellSize = 20;
+        this.cellSize = 30;
         this.rows;
         this.cols;
         this.flowField = [];
         this.curve = 5;
         this.zoom = 0.11;
+        this.debug = false;
         this.init();
+
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "d") {
+                this.debug = !this.debug;
+            }
+        });
     }
 
     init() {
@@ -119,6 +127,43 @@ class Effect {
         for (let i = 0; i < this.numberOfParticles; i++) {
             this.particles.push(new Particle(this));
         }
+    }
+
+    drawGrid(context: any) {
+        for (let c = 0; c < this.cols; c++) {
+            context.beginPath();
+            context.moveTo(this.cellSize * c, 0);
+            context.lineTo(this.cellSize * c, this.height);
+            context.stroke();
+        }
+
+        for (let r = 0; r < this.rows; r++) {
+            context.beginPath();
+            context.moveTo(0, this.cellSize * r);
+            context.lineTo(this.width, this.cellSize * r);
+            context.stroke();
+        }
+    }
+
+    drawGridAngles(context: any) {
+        context.save();
+        context.strokeStyle = "red";
+
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                context.beginPath();
+                context.moveTo(c * this.cellSize + this.cellSize / 2, this.cellSize * r + this.cellSize / 2);
+                context.lineTo(
+                    c * this.cellSize + this.cellSize / 2 + (Math.cos(this.flowField[r * this.cols + c]) * this.cellSize) / 4,
+                    this.cellSize * r + this.cellSize / 2 + (Math.sin(this.flowField[r * this.cols + c]) * this.cellSize) / 4
+                );
+                context.stroke();
+
+                // context.fillText(Math.round(this.flowField[r * this.cols + c]), c * this.cellSize + this.cellSize / 2, this.cellSize * r + this.cellSize / 2);
+            }
+        }
+
+        context.restore();
     }
 
     render(context: any) {
@@ -157,6 +202,11 @@ const Page = (props: Props) => {
             const animate = () => {
                 canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
                 effect.render(canvasCtx);
+                if (effect.debug) {
+                    effect.drawGrid(canvasCtx);
+                    effect.drawGridAngles(canvasCtx);
+                }
+
                 requestAnimationFrame(animate);
             };
 
