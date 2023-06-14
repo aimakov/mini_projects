@@ -16,36 +16,16 @@ class Particle {
   constructor(effect: any) {
     this.effect = effect;
 
-    // let x = Math.random() * this.effect.width;
-    // let y = Math.random() * this.effect.height;
-
-    // while (
-    //   Math.sqrt(
-    //     Math.pow(this.effect.center.x - x, 2) +
-    //       Math.pow(this.effect.center.y - y, 2)
-    //   ) < this.effect.centerRadius
-    // ) {
-    //   x = Math.random() * this.effect.width;
-    //   y = Math.random() * this.effect.height;
-    // }
-
-    // this.x = x;
-    // this.y = y;
-
     this.reset();
 
-    // this.y =
-    //   (Math.random() * this.effect.height) / 50 +
-    //   (this.effect.height * 4) / 5 +
-    //   (Math.random() - 0.5) * 20;
     this.radius = Math.random() * 3 + 2;
-    // this.speedModifier = Math.random() + 1;
+
     this.speedModifier = Math.floor(Math.random() * 10 + 5);
   }
 
   reset() {
-    let x = Math.random() * this.effect.width;
-    let y = Math.random() * this.effect.height;
+    let x = Math.random() * this.effect.width - 1;
+    let y = Math.random() * this.effect.height - 1;
 
     while (
       Math.sqrt(
@@ -75,29 +55,23 @@ class Particle {
           Math.pow(this.effect.center.y - this.y, 2)
       ) < this.effect.centerRadius
     ) {
-      //   this.x = Math.random() * this.effect.width;
-      //   this.y = Math.random() * this.effect.height;
       this.reset();
-      console.log("Reset1");
     } else {
       let x = Math.floor(this.x / this.effect.cellSize);
       let y = Math.floor(this.y / this.effect.cellSize);
       let index = y * this.effect.cols + x;
 
-      // // this.x += this.speedX;
       if (this.effect.flowField[index] !== undefined) {
         this.speedX = this.effect.flowField[index].x;
         this.speedY = this.effect.flowField[index].y;
+
+        this.x += this.speedX * this.speedModifier;
+        this.y += this.speedY * this.speedModifier;
       } else {
-        // this.x = Math.random() * this.effect.width;
-        // this.y = Math.random() * this.effect.height;
         this.reset();
-        console.log("Reset2");
       }
 
       // console.log(this.effect.flowField[index].x, this.speedX);
-      this.x += this.speedX * this.speedModifier;
-      this.y += this.speedY * this.speedModifier;
     }
   }
 }
@@ -127,7 +101,7 @@ class Effect {
     this.width = this.canvas.width;
     this.height = this.canvas.height;
     this.particles = [];
-    this.numberOfParticles = 10;
+    this.numberOfParticles = 500;
     this.cellSize = 30;
     this.rows;
     this.cols;
@@ -177,26 +151,6 @@ class Effect {
     return { x: vx / this.divider, y: vy / this.divider };
 
     // Create an object representing the vector and add it to the row
-  }
-
-  getSpiralFieldVector(pointX: number, pointY: number) {
-    // Calculate difference in x and y coordinates
-    const dx = pointX - this.center.x;
-    const dy = pointY - this.center.y;
-    // Calculate angle and distance from the center
-    const angle = Math.atan2(dy, dx);
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    // Set spiral parameters
-    const spiralDensity = 0.01; // Adjust the density of the spiral
-    const spiralConstant = 0.1; // Adjust the strength of the spiral
-    // Calculate spiral field vector components
-    const spiralX =
-      Math.cos(angle) * distance * spiralDensity +
-      Math.sin(distance * spiralDensity) * spiralConstant;
-    const spiralY =
-      Math.sin(angle) * distance * spiralDensity -
-      Math.cos(distance * spiralDensity) * spiralConstant;
-    return { x: -spiralX, y: -spiralY };
   }
 
   init() {
@@ -298,6 +252,7 @@ const Page = (props: Props) => {
       const animate = () => {
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
         effect.render(canvasCtx);
+
         // effect.drawGrid(canvasCtx);
         // effect.drawGridAngles(canvasCtx);
 
