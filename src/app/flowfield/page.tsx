@@ -5,49 +5,76 @@ import React, { useEffect, useRef } from "react";
 type Props = {};
 
 class Particle {
-    effect: any;
     x: number;
     y: number;
-    radius: number;
+    effect: any;
+    speedX: any;
+    speedY: any;
+    history: any[];
+    maxLength: number;
+    angle: number;
     speedModifier: number;
-    speedX: number;
-    speedY: number;
+    timer: number;
 
     constructor(effect: any) {
         this.effect = effect;
-        this.x = (Math.random() * this.effect.width) / 50;
-        this.y = (Math.random() * this.effect.height) / 50 + (this.effect.height * 4) / 5 + (Math.random() - 0.5) * 20;
-        this.radius = Math.random() * 3 + 2;
-        // this.speedModifier = Math.random() + 1;
-        this.speedModifier = 1;
-
-        this.speedX = 10;
-        this.speedY = 0;
+        this.x = Math.floor(Math.random() * this.effect.width);
+        this.y = Math.floor(Math.random() * this.effect.height);
+        this.speedX;
+        this.speedY;
+        this.speedModifier = Math.floor(Math.random() * 5 + 2);
+        this.history = [{ x: this.x, y: this.y }];
+        this.maxLength = Math.floor(Math.random() * 200 + 10);
+        this.angle = 0;
+        this.timer = this.maxLength * 2;
     }
 
     draw(context: any) {
         // context.fillRect(this.x, this.y, 10, 10);
         context.beginPath();
-        context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
-        context.fill();
+        context.moveTo(this.history[0].x, this.history[0].y);
+
+        for (let i = 0; i < this.history.length; i++) {
+            context.lineTo(this.history[i].x, this.history[i].y);
+        }
+
+        context.stroke();
     }
 
     update() {
-        let x = Math.floor(this.x / this.effect.cellSize);
-        let y = Math.floor(this.y / this.effect.cellSize);
+        this.timer--;
 
-        let index = y * this.effect.cols + x;
-        // this.x += this.speedX;
+        if (this.timer >= 1) {
+            let x = Math.floor(this.x / this.effect.cellSize);
+            let y = Math.floor(this.y / this.effect.cellSize);
 
-        this.speedX += this.effect.flowField[index].x * 0.5;
-        this.speedY += this.effect.flowField[index].y * 0.5;
+            let index = y * this.effect.cols + x;
+            this.angle = this.effect.flowField[index];
 
-        this.x += this.speedX * this.speedModifier;
-        this.y += this.speedY * this.speedModifier;
+            this.speedX = Math.cos(this.angle);
+            this.speedY = Math.sin(this.angle);
 
-        // if (this.x > this.effect.width / 2) {
-        //     this.x = 0;
-        // }
+            this.x += this.speedX * this.speedModifier;
+            this.y += this.speedY * this.speedModifier;
+
+            this.history.push({ x: this.x, y: this.y });
+            if (this.history.length > this.maxLength) {
+                this.history.shift();
+            }
+        } else if (this.history.length > 1) {
+            this.history.shift();
+        } else {
+            this.reset();
+        }
+    }
+
+    reset() {
+        this.x = Math.floor(Math.random() * this.effect.width);
+        this.y = Math.floor(Math.random() * this.effect.height);
+
+        this.history = [{ x: this.x, y: this.y }];
+
+        this.timer = this.maxLength * 2;
     }
 }
 
@@ -59,14 +86,12 @@ class Effect {
     cellSize: number;
     rows: number;
     cols: number;
-    flowField: { x: number; y: number }[];
+    flowField: number[];
     curve: number;
     zoom: number;
     debug: boolean;
     canvas: any;
     context: any;
-
-    center: { x: number; y: number };
 
     constructor(canvas: any, context: any) {
         this.canvas = canvas;
@@ -74,7 +99,7 @@ class Effect {
         this.width = this.canvas.width;
         this.height = this.canvas.height;
         this.particles = [];
-        this.numberOfParticles = 1;
+        this.numberOfParticles = 1000;
         this.cellSize = 30;
         this.rows;
         this.cols;
@@ -82,9 +107,6 @@ class Effect {
         this.curve = 0.2;
         this.zoom = 0.1;
         this.debug = false;
-
-        this.center = { x: this.width / 2, y: this.height / 2 };
-
         this.init();
 
         window.addEventListener("keydown", (e) => {
@@ -109,22 +131,6 @@ class Effect {
         this.init();
     }
 
-    getSpiralFieldVector(pointX: number, pointY: number) {
-        // Calculate difference in x and y coordinates
-        const dx = pointX - this.center.x;
-        const dy = pointY - this.center.y;
-        // Calculate angle and distance from the center
-        const angle = Math.atan2(dy, dx);
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        // Set spiral parameters
-        const spiralDensity = 0.01; // Adjust the density of the spiral
-        const spiralConstant = 0.1; // Adjust the strength of the spiral
-        // Calculate spiral field vector components
-        const spiralX = Math.cos(angle) * distance * spiralDensity + Math.sin(distance * spiralDensity) * spiralConstant;
-        const spiralY = Math.sin(angle) * distance * spiralDensity - Math.cos(distance * spiralDensity) * spiralConstant;
-        return { x: -spiralX, y: -spiralY };
-    }
-
     init() {
         this.rows = Math.floor(this.height / this.cellSize);
         this.cols = Math.floor(this.width / this.cellSize);
@@ -132,7 +138,8 @@ class Effect {
 
         for (let y = 0; y < this.rows; y++) {
             for (let x = 0; x < this.cols; x++) {
-                this.flowField.push(this.getSpiralFieldVector((x + 0.5) * this.cellSize, (y + 0.5) * this.cellSize));
+                let angle = (Math.cos(x * this.zoom) + Math.sin(y * this.zoom)) * this.curve;
+                this.flowField.push(angle);
             }
         }
 
@@ -140,13 +147,6 @@ class Effect {
         for (let i = 0; i < this.numberOfParticles; i++) {
             this.particles.push(new Particle(this));
         }
-    }
-
-    render(context: any) {
-        this.particles.forEach((particle) => {
-            particle.draw(context);
-            particle.update();
-        });
     }
 
     drawGrid(context: any) {
@@ -174,14 +174,21 @@ class Effect {
                 context.beginPath();
                 context.moveTo(c * this.cellSize + this.cellSize / 2, this.cellSize * r + this.cellSize / 2);
                 context.lineTo(
-                    c * this.cellSize + this.cellSize / 2 + (this.flowField[r * this.cols + c].x * this.cellSize) / 3,
-                    this.cellSize * r + this.cellSize / 2 + (this.flowField[r * this.cols + c].y * this.cellSize) / 3
+                    c * this.cellSize + this.cellSize / 2 + (Math.cos(this.flowField[r * this.cols + c]) * this.cellSize) / 3,
+                    this.cellSize * r + this.cellSize / 2 + (Math.sin(this.flowField[r * this.cols + c]) * this.cellSize) / 3
                 );
                 context.stroke();
-                context.fillText(Math.round(this.flowField[r * this.cols + c].x), c * this.cellSize + this.cellSize / 2, this.cellSize * r + this.cellSize / 2);
+                // context.fillText(Math.round(this.flowField[r * this.cols + c]), c * this.cellSize + this.cellSize / 2, this.cellSize * r + this.cellSize / 2);
             }
         }
         context.restore();
+    }
+
+    render(context: any) {
+        this.particles.forEach((particle) => {
+            particle.draw(context);
+            particle.update();
+        });
     }
 }
 
@@ -207,9 +214,11 @@ const Page = (props: Props) => {
 
             const animate = () => {
                 canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-                // effect.render(canvasCtx);
-                effect.drawGrid(canvasCtx);
-                effect.drawGridAngles(canvasCtx);
+                effect.render(canvasCtx);
+                if (effect.debug) {
+                    effect.drawGrid(canvasCtx);
+                    effect.drawGridAngles(canvasCtx);
+                }
 
                 requestAnimationFrame(animate);
             };
