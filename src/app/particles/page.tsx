@@ -16,16 +16,37 @@ class Particle {
   constructor(effect: any) {
     this.effect = effect;
 
-    this.reset();
+    this.resetOnIslands();
 
     this.radius = Math.random() * 3 + 2;
 
-    this.speedModifier = Math.floor(Math.random() * 10 + 5);
+    this.speedModifier = Math.floor(Math.random() * 5 + 5);
+  }
+
+  resetOnIslands() {
+    let x = Math.random() * this.effect.width;
+    let y = Math.random() * this.effect.height;
+
+    let index = Math.floor(Math.random() * this.effect.islandsInfo.length);
+
+    while (
+      Math.sqrt(
+        Math.pow(this.effect.islandsInfo[index].x - x, 2) +
+          Math.pow(this.effect.islandsInfo[index].y - y, 2)
+      ) >
+      this.effect.islandsInfo[index].radius - 10
+    ) {
+      x = Math.random() * this.effect.width;
+      y = Math.random() * this.effect.height;
+    }
+
+    this.x = x;
+    this.y = y;
   }
 
   reset() {
-    let x = Math.random() * this.effect.width - 1;
-    let y = Math.random() * this.effect.height - 1;
+    let x = Math.random() * this.effect.width;
+    let y = Math.random() * this.effect.height;
 
     while (
       Math.sqrt(
@@ -55,7 +76,7 @@ class Particle {
           Math.pow(this.effect.center.y - this.y, 2)
       ) < this.effect.centerRadius
     ) {
-      this.reset();
+      this.resetOnIslands();
     } else {
       let x = Math.floor(this.x / this.effect.cellSize);
       let y = Math.floor(this.y / this.effect.cellSize);
@@ -68,7 +89,7 @@ class Particle {
         this.x += this.speedX * this.speedModifier;
         this.y += this.speedY * this.speedModifier;
       } else {
-        this.reset();
+        this.resetOnIslands();
       }
 
       // console.log(this.effect.flowField[index].x, this.speedX);
@@ -95,13 +116,19 @@ class Effect {
   divider: number;
   centerRadius: number;
 
+  islandsInfo: any[];
+  islandsInfo2: any[];
+  islandPositionRadius: number;
+  islandRadius: number;
+  islandsAngle: number;
+
   constructor(canvas: any, context: any) {
     this.canvas = canvas;
     this.context = context;
     this.width = this.canvas.width;
     this.height = this.canvas.height;
     this.particles = [];
-    this.numberOfParticles = 500;
+    this.numberOfParticles = 1000;
     this.cellSize = 30;
     this.rows;
     this.cols;
@@ -113,6 +140,83 @@ class Effect {
     this.center = { x: this.width / 2, y: this.height / 2 };
     this.divider = 200;
     this.centerRadius = 100;
+
+    this.islandPositionRadius = 400;
+    this.islandRadius = 80;
+    this.islandsAngle = Math.PI / 3;
+
+    // this.islandsInfo2 = [...Array(6)].reduce((acc, val) => [...acc, val]);
+
+    this.islandsInfo = [];
+
+    for (let i = 0; i < 6; i++) {
+      this.islandsInfo.push({
+        x:
+          this.width / 2 +
+          this.islandPositionRadius * Math.cos(this.islandsAngle * (i + 1)),
+        y:
+          this.height / 2 +
+          this.islandPositionRadius * Math.sin(this.islandsAngle * (i + 1)),
+        radius: this.islandRadius,
+      });
+    }
+
+    this.islandsInfo2 = [
+      {
+        x:
+          this.width / 2 +
+          this.islandPositionRadius * Math.cos(this.islandsAngle),
+        y:
+          this.height / 2 +
+          this.islandPositionRadius * Math.sin(this.islandsAngle),
+        radius: this.islandRadius,
+      },
+      {
+        x:
+          this.width / 2 +
+          this.islandPositionRadius * Math.cos(this.islandsAngle * 2),
+        y:
+          this.height / 2 +
+          this.islandPositionRadius * Math.sin(this.islandsAngle * 2),
+        radius: this.islandRadius,
+      },
+      {
+        x:
+          this.width / 2 +
+          this.islandPositionRadius * Math.cos(this.islandsAngle * 3),
+        y:
+          this.height / 2 +
+          this.islandPositionRadius * Math.sin(this.islandsAngle * 3),
+        radius: this.islandRadius,
+      },
+      {
+        x:
+          this.width / 2 +
+          this.islandPositionRadius * Math.cos(this.islandsAngle * 4),
+        y:
+          this.height / 2 +
+          this.islandPositionRadius * Math.sin(this.islandsAngle * 4),
+        radius: this.islandRadius,
+      },
+      {
+        x:
+          this.width / 2 +
+          this.islandPositionRadius * Math.cos(this.islandsAngle * 5),
+        y:
+          this.height / 2 +
+          this.islandPositionRadius * Math.sin(this.islandsAngle * 5),
+        radius: this.islandRadius,
+      },
+      {
+        x:
+          this.width / 2 +
+          this.islandPositionRadius * Math.cos(this.islandsAngle * 6),
+        y:
+          this.height / 2 +
+          this.islandPositionRadius * Math.sin(this.islandsAngle * 6),
+        radius: this.islandRadius,
+      },
+    ];
 
     this.init();
 
@@ -134,6 +238,7 @@ class Effect {
     this.height = this.canvas.height;
 
     this.context.strokeStyle = "white";
+    this.context.fillStyle = "white";
 
     this.init();
   }
@@ -180,6 +285,19 @@ class Effect {
       particle.draw(context);
       particle.update();
     });
+  }
+
+  drawIslands(context: any) {
+    context.save();
+    context.strokeStyle = "white";
+    context.fillStyle = "white";
+    context.lineCap = "round";
+    this.islandsInfo.forEach((island: any) => {
+      context.beginPath();
+      context.arc(island.x, island.y, island.radius, 0, 2 * Math.PI);
+      context.fill();
+    });
+    context.restore();
   }
 
   drawGrid(context: any) {
@@ -241,9 +359,11 @@ const Page = (props: Props) => {
 
       let canvasCtx = canvasElement.getContext("2d");
 
-      canvasCtx.strokeStyle = "white";
-      canvasCtx.fillStyle = "white";
-      canvasCtx.lineCap = "round";
+      setTimeout(() => {
+        canvasCtx.strokeStyle = "white";
+        canvasCtx.fillStyle = "white";
+        canvasCtx.lineCap = "round";
+      }, 500);
 
       let effect = new Effect(canvasElement, canvasCtx);
 
@@ -252,6 +372,7 @@ const Page = (props: Props) => {
       const animate = () => {
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
         effect.render(canvasCtx);
+        effect.drawIslands(canvasCtx);
 
         // effect.drawGrid(canvasCtx);
         // effect.drawGridAngles(canvasCtx);
